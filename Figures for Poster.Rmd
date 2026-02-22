@@ -144,6 +144,15 @@ cmast_sal_25 <- read_excel("C:/Users/annab/OneDrive/Desktop/Cleaned/CMAST_Con_Cl
   ) %>%
   select(OverlayTime, Year, Salinity)
 
+cmast_precip_25 <- read_excel("C:/Users/rerob/Desktop/Bass/summer-2026-visualization-tool-main/Cleaned/CMAST_Precip_Cleaned.xlsx") %>%
+  filter(month(DateTime) %in% c(5,6,7,8,9,10)) %>%
+  mutate(
+    Year = 2025,
+    OverlayTime = update(DateTime, year = 2000),
+    Precipitation = as.numeric(Precip_mm)
+  ) %>%
+  select(OverlayTime, Year, Precipitation)
+
 # 2024
 cmast_do_24 <- read_excel("C:/Users/annab/OneDrive/Desktop/DOsensor_2024.xlsx") %>%
   mutate(DateTime = ymd_hms(DateTime)) %>%
@@ -176,10 +185,20 @@ cmast_sal_24 <- read_excel("C:/Users/annab/OneDrive/Desktop/Salinity_2024.xlsx")
   ) %>%
   select(OverlayTime, Year, Salinity)
 
+cmast_precip_24 <- read_excel("C:/Users/rerob/Desktop/Bass/summer-2026-visualization-tool-main/2024 Datasets/Precipdaily_2024.xlsx") %>%
+  filter(month(DateTime) %in% c(5,6,7,8,9,10)) %>%
+  mutate(
+    Year = 2024,
+    OverlayTime = update(DateTime, year = 2000),
+    Precipitation = as.numeric(Precip_mm)
+  ) %>%
+  select(OverlayTime, Year, Precipitation)
+
 # combine data
 cmast_do  <- bind_rows(cmast_do_24, cmast_do_25)
 cmast_ph  <- bind_rows(cmast_ph_24, cmast_ph_25)
 cmast_sal <- bind_rows(cmast_sal_24, cmast_sal_25)
+cmast_precip <- bind_rows(cmast_precip_24, cmast_precip_25)
 
 # Convert to long format for plotting
 do_long <- cmast_do %>%
@@ -202,11 +221,15 @@ sal_long <- cmast_sal %>%
   mutate(Parameter = "Salinity", Value = Salinity) %>%
   select(OverlayTime, Year, Parameter, Value)
 
-cmast_all <- bind_rows(do_long, ph_long, sal_long)
+precip_long <- cmast_precip %>%
+  mutate(Parameter = "Precipitation", Value = Precipitation) %>%
+  select(OverlayTime, Year, Parameter, Value)
+
+cmast_all <- bind_rows(do_long, ph_long, sal_long, precip_long)
 
 cmast_all$Parameter <- factor(
   cmast_all$Parameter,
-  levels = c("Temperature", "Dissolved Oxygen", "pH", "Salinity")
+  levels = c("Temperature", "Dissolved Oxygen", "pH", "Salinity", "Precipitation")
 )
 
 cmast_all <- cmast_all %>%
@@ -215,7 +238,8 @@ cmast_all <- cmast_all %>%
                              "Dissolved Oxygen" = "DO",
                              "Temperature" = "Temperature",
                              "Salinity" = "Salinity",
-                             "pH" = "pH"),
+                             "pH" = "pH",
+                             "Precipitation" = "Precipitation"),
     ColorGroup = paste0(Parameter_short, "_", Year)
   )
 
@@ -227,7 +251,9 @@ cmast_all <- cmast_all %>%
     "pH_2024" = "#AD8BC9FF", 
     "pH_2025" = "#CDCC5DFF", 
     "DO_2024" = "#A8786EFF", 
-    "DO_2025" = "#FF9E4AFF"
+    "DO_2025" = "#FF9E4AFF",
+    "Precipitation_2024" = "#BAB0AC",
+    "Precipitation_2025" = "#A8C5DA"
   )
 
 ggplot(cmast_all,
@@ -237,7 +263,7 @@ ggplot(cmast_all,
            group = ColorGroup)) +
   geom_line() +
   scale_color_manual(values = color_palette) +
-  scale_x_datetime(date_labels = "%b %d") +
+  scale_x_datetime(date_labels = "%b %d", limits = as.POSIXct(c("2000-05-01", "2000-10-01"))) +
   labs(
     x = "Date",
     y = NULL,
@@ -316,4 +342,5 @@ sal_plot <- cmast_all %>%
 (temp_plot / do_plot) | (ph_plot / sal_plot)
 
 ```
+
 
