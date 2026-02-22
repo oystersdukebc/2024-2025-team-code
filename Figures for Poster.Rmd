@@ -1,0 +1,319 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r libraries}
+
+library(tidyverse)
+library(lubridate)
+library(readxl)
+library(patchwork)
+
+```
+
+
+```{r acceleration}
+
+load_accel <- function(file, deployment){
+  read_excel(file) %>%
+    mutate(
+      DateTime = ymd_hms(DateTime),
+      Sum_Acc_G = as.numeric(Sum_Acc_G),
+      Month = month(DateTime)
+    ) %>%
+    select(DateTime, Farm, Sum_Acc_G, Month)
+}
+
+acc_cmast_shell <- load_accel("C:/Users/annab/OneDrive/Desktop/CMAST_G(on shell).xlsx", "On Shell")
+acc_ward_shell <- load_accel("C:/Users/annab/OneDrive/Desktop/Ward_G(on shell).xlsx", "On Shell")
+acc_duml_shell <- load_accel("C:/Users/annab/OneDrive/Desktop/DUML_G(on shell).xlsx", "On Shell")
+
+acc_summer <- bind_rows(
+  acc_cmast_shell,
+  acc_duml_shell,
+  acc_ward_shell
+) %>%
+  filter(Month %in% c(5,6,7,8,9))
+
+ggplot(acc_summer,
+       aes(x = DateTime,
+           y = Sum_Acc_G,
+           color = Farm)) +
+  geom_line() +
+  scale_color_manual(values = c(
+    "CMAST" = "#ED665DFF",
+    "DUML" = "#729ECEFF",
+    "Ward Creek" = "#67BF5CFF"
+  )) +
+  labs(
+    title = "Total Acceleration at CMAST, DUML, and Ward Creek",
+    x = "Date",
+    y = "Sum Acceleration (G)",
+    color = "Farm"
+  ) +
+  theme_minimal()
+
+ggsave("acceleration.jpeg")
+
+```
+
+
+```{r do at ward and stump}
+
+# load data
+load_do <- function(file, farm){
+  read_excel(file) %>%
+    mutate(
+      DateTime = ymd_hms(DateTime),
+      DO = as.numeric(DomgL),
+      Farm = farm,
+      Month = month(DateTime)
+    ) %>%
+    select(DateTime, Farm, DO, Month)
+}
+
+stump_do  <- load_do("C:/Users/annab/OneDrive/Desktop/Cleaned/StumpSound_DO_Cleaned.xlsx", "Stump Sound")
+nelson_do <- load_do("C:/Users/annab/OneDrive/Desktop/Cleaned/Nelson_DO_Cleaned.xlsx", "Nelson Bay")
+
+do_summer <- bind_rows(stump_do, nelson_do) %>%
+  filter(Month %in% c(5, 6, 7, 8, 9))
+
+# plot
+ggplot(do_summer,
+       aes(x = DateTime, y = DO, color = Farm)) +
+  geom_line() +
+  geom_rect(
+  inherit.aes = FALSE,
+  xmin = as.POSIXct("2025-06-01"),
+  xmax = as.POSIXct("2025-07-01"),
+  ymin = -Inf,
+  ymax = Inf,
+  fill = "lightgray",
+  alpha = 0.2
+) +
+  scale_color_manual(values = c(
+    "Stump Sound" = "#FF9E4AFF",
+    "Nelson Bay"  = "#AD8BC9FF"
+  )) +
+  labs(
+    title = "Dissolved Oxygen at Nelson Bay and Stump Sound",
+    x = "Date",
+    y = "Dissolved Oxygen (mg/L)",
+    color = "Farm"
+  ) +
+  theme_minimal()
+
+ggsave("DONelsonStump.jpeg")
+
+```
+
+
+```{r cmast}
+
+# load data
+cmast_do_25 <- read_excel("C:/Users/annab/OneDrive/Desktop/Cleaned/CMAST_DO_Cleaned.xlsx") %>%
+  mutate(DateTime = ymd_hms(DateTime)) %>%
+  filter(month(DateTime) %in% c(5,6,7,8,9,10)) %>%
+  mutate(
+    Year = 2025,
+    OverlayTime = update(DateTime, year = 2000),
+    DO = as.numeric(DomgL),
+    Temp_C = as.numeric(Temp_C)
+  ) %>%
+  select(OverlayTime, Year, DO, Temp_C)
+
+cmast_ph_25 <- read_excel("C:/Users/annab/OneDrive/Desktop/Cleaned/CMAST_pH_Cleaned.xlsx") %>%
+  mutate(DateTime = ymd_hms(DateTime)) %>%
+  filter(month(DateTime) %in% c(5,6,7,8,9,10)) %>%
+  mutate(
+    Year = 2025,
+    OverlayTime = update(DateTime, year = 2000),
+    pH = as.numeric(pH)
+  ) %>%
+  select(OverlayTime, Year, pH)
+
+cmast_sal_25 <- read_excel("C:/Users/annab/OneDrive/Desktop/Cleaned/CMAST_Con_Cleaned.xlsx") %>%
+  mutate(DateTime = ymd_hms(DateTime)) %>%
+  filter(month(DateTime) %in% c(5,6,7,8,9,10)) %>%
+  mutate(
+    Year = 2025,
+    OverlayTime = update(DateTime, year = 2000),
+    Salinity = as.numeric(Sal_ppt)
+  ) %>%
+  select(OverlayTime, Year, Salinity)
+
+# 2024
+cmast_do_24 <- read_excel("C:/Users/annab/OneDrive/Desktop/DOsensor_2024.xlsx") %>%
+  mutate(DateTime = ymd_hms(DateTime)) %>%
+  filter(month(DateTime) %in% c(5,6,7,8,9,10)) %>%
+  mutate(
+    Year = 2024,
+    OverlayTime = update(DateTime, year = 2000),
+    DO = as.numeric(DomgL),
+    Temp_C = as.numeric(Temp_C)
+  ) %>%
+  select(OverlayTime, Year, DO, Temp_C)
+
+cmast_ph_24 <- read_excel("C:/Users/annab/OneDrive/Desktop/pH_2024.xlsx") %>%
+  mutate(DateTime = ymd_hms(DateTime)) %>%
+  filter(month(DateTime) %in% c(5,6,7,8,9,10)) %>%
+  mutate(
+    Year = 2024,
+    OverlayTime = update(DateTime, year = 2000),
+    pH = as.numeric(pH)
+  ) %>%
+  select(OverlayTime, Year, pH)
+
+cmast_sal_24 <- read_excel("C:/Users/annab/OneDrive/Desktop/Salinity_2024.xlsx") %>%
+  mutate(DateTime = ymd_hms(DateTime)) %>%
+  filter(month(DateTime) %in% c(5,6,7,8,9,10)) %>%
+  mutate(
+    Year = 2024,
+    OverlayTime = update(DateTime, year = 2000),
+    Salinity = as.numeric(Sal_ppt)
+  ) %>%
+  select(OverlayTime, Year, Salinity)
+
+# combine data
+cmast_do  <- bind_rows(cmast_do_24, cmast_do_25)
+cmast_ph  <- bind_rows(cmast_ph_24, cmast_ph_25)
+cmast_sal <- bind_rows(cmast_sal_24, cmast_sal_25)
+
+# Convert to long format for plotting
+do_long <- cmast_do %>%
+  pivot_longer(
+    cols = c(Temp_C, DO),
+    names_to = "Parameter",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Parameter = recode(Parameter,
+                       Temp_C = "Temperature",
+                       DO = "Dissolved Oxygen")
+  )
+
+ph_long <- cmast_ph %>%
+  mutate(Parameter = "pH", Value = pH) %>%
+  select(OverlayTime, Year, Parameter, Value)
+
+sal_long <- cmast_sal %>%
+  mutate(Parameter = "Salinity", Value = Salinity) %>%
+  select(OverlayTime, Year, Parameter, Value)
+
+cmast_all <- bind_rows(do_long, ph_long, sal_long)
+
+cmast_all$Parameter <- factor(
+  cmast_all$Parameter,
+  levels = c("Temperature", "Dissolved Oxygen", "pH", "Salinity")
+)
+
+cmast_all <- cmast_all %>%
+  mutate(
+    Parameter_short = recode(Parameter,
+                             "Dissolved Oxygen" = "DO",
+                             "Temperature" = "Temperature",
+                             "Salinity" = "Salinity",
+                             "pH" = "pH"),
+    ColorGroup = paste0(Parameter_short, "_", Year)
+  )
+
+  color_palette <- c(
+    "Salinity_2024" = "#729ECEFF", 
+    "Salinity_2025" = "#ED665DFF", 
+    "Temperature_2024" = "#67BF5CFF", 
+    "Temperature_2025" = "#ED97CAFF", 
+    "pH_2024" = "#AD8BC9FF", 
+    "pH_2025" = "#CDCC5DFF", 
+    "DO_2024" = "#A8786EFF", 
+    "DO_2025" = "#FF9E4AFF"
+  )
+
+ggplot(cmast_all,
+       aes(x = OverlayTime,
+           y = Value,
+           color = ColorGroup,
+           group = ColorGroup)) +
+  geom_line() +
+  scale_color_manual(values = color_palette) +
+  scale_x_datetime(date_labels = "%b %d") +
+  labs(
+    x = "Date",
+    y = NULL,
+    color = "Parameter & Year"
+  ) +
+  facet_wrap(~ Parameter,
+           scales = "free",
+           ncol = 2,
+           dir = "v") +
+  theme_minimal()
+
+# ggsave("cmast.jpeg")
+  
+```
+```{r}
+
+temp_plot <- cmast_all %>%
+  filter(Parameter == "Temperature") %>%
+  ggplot(aes(x = OverlayTime,
+             y = Value,
+             color = ColorGroup,
+             group = ColorGroup)) +
+  geom_line() +
+  scale_color_manual(values = color_palette) +
+  scale_x_datetime(date_labels = "%b %d") +
+  labs(x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    legend.position = "none"
+  )
+
+do_plot <- cmast_all %>%
+  filter(Parameter == "Dissolved Oxygen") %>%
+  ggplot(aes(x = OverlayTime,
+             y = Value,
+             color = ColorGroup,
+             group = ColorGroup)) +
+  geom_line() +
+  scale_color_manual(values = color_palette) +
+  scale_x_datetime(date_labels = "%b %d") +
+  labs(x = "Date", y = NULL) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+ph_plot <- cmast_all %>%
+  filter(Parameter == "pH") %>%
+  ggplot(aes(x = OverlayTime,
+             y = Value,
+             color = ColorGroup,
+             group = ColorGroup)) +
+  geom_line() +
+  scale_color_manual(values = color_palette) +
+  scale_x_datetime(date_labels = "%b %d") +
+  labs(x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    legend.position = "none"
+  )
+
+sal_plot <- cmast_all %>%
+  filter(Parameter == "Salinity") %>%
+  ggplot(aes(x = OverlayTime,
+             y = Value,
+             color = ColorGroup,
+             group = ColorGroup)) +
+  geom_line() +
+  scale_color_manual(values = color_palette) +
+  scale_x_datetime(date_labels = "%b %d") +
+  labs(x = "Date", y = NULL, color = "Parameter & Year") +
+  theme_minimal()
+
+(temp_plot / do_plot) | (ph_plot / sal_plot)
+
+```
+
