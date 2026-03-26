@@ -147,7 +147,7 @@ colors <- c(
 # UI
 ui <- fluidPage(
   
-  titlePanel("Summer 2026 Data Visualization Tool"),
+  titlePanel("Summer 2025 Data Visualization Tool"),
   
   tabsetPanel(
     id="month_tabs",
